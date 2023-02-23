@@ -6,6 +6,7 @@
 
 require("./bootstrap");
 require("./sb-admin");
+require("./ajax");
 
 /**
  * Next, we will create a fresh React component instance and attach it to
