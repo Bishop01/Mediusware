@@ -100,6 +100,9 @@
                                                 {
                                                     $type=strtoupper($var->variant);
                                                 }
+                                                else {
+                                                    continue;
+                                                }
                                             }
                                             //echo "$size / $color / $type"
                                             echo (($size) ? "$size" : "");

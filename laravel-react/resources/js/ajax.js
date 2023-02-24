@@ -8,15 +8,14 @@ $(document).ready(() => {
         var to = $("#to").val();
         var variants = $("#variants").val();
 
-        if (from != "")
+        if (from !== "")
             from = +from
-        if (to != "")
-            to = +to
-
-        if (from == "")
+        else
             from = 0
-        if (to == "")
-            to = Number.MAX_SAFE_INTEGER
+        if (to !== "")
+            to = +to
+        else
+            to = Number.MAX_SAFE_INTEGER;
 
         var data = {
             title: title,
@@ -36,8 +35,8 @@ $(document).ready(() => {
                 $("body").html(response);
 
                 $("#title").val(title);
-                from == 0 ? "" : $("#from").val(from);
-                to == Number.MAX_SAFE_INTEGER ? "" : $("#from").val(to);
+                $("#from").val(from);
+                $("#from").val(to);
             },
             error: function (err) {
                 alert("Error")

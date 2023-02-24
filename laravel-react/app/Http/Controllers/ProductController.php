@@ -105,21 +105,104 @@ class ProductController extends Controller
     private function filter(Request $request)
     {
         $productVariants = ProductVariant::all();
-        $products = Product::with('productVariantPrice');
+        //$products = Product::with('productVariantPrice');
 
         $title = $request->title;
         $minPrice = $request->from;
         $maxPrice = $request->to;
         $variants = $request->variants;
+        
+        $products = null;
+        $newVariants = array();
 
-        if($title){
-            $products = $product->where("title", $title);
+        if(is_array($variants) && count($variants)>0){
+            foreach ($productVariants as $variant) {
+                if(in_array($variant->variant, $variants))
+                    array_push($newVariants, $variant->id);
+            }
         }
-        $products = $products->with(['productVariantPrice' => function ($query) use ($minPrice, $maxPrice) {
-            $query->whereBetween('price', [$minPrice, $maxPrice]);
-        }])->whereHas('productVariantPrice', function ($query) use ($minPrice, $maxPrice) {
-            $query->whereBetween('price', [$minPrice, $maxPrice]);
-        })->paginate(3);
+
+        if($title=="" && (!is_array($variants) || count($variants)==0))
+        {
+            $products = Product::with(['productVariantPrice' => function ($query) use ($minPrice, $maxPrice) {
+                $query->whereBetween('price',[$minPrice, $maxPrice]);
+            }])->whereHas('productVariantPrice', function ($query) use ($minPrice, $maxPrice) {
+                $query->whereBetween('price',[$minPrice, $maxPrice]);
+            })->paginate(3);
+            return view('products.index')->with("products", $products)->with("productVariants", $productVariants);
+        }
+        else{
+            if($title && (is_array($variants) && count($variants)>0))
+            {
+                $products = Product::with(['productVariantPrice' => function ($query) use ($minPrice, $maxPrice, $newVariants) {
+                    $query->whereBetween('price',[$minPrice, $maxPrice])
+                    ->where(function($query) use ($newVariants) {
+                        $query->whereIn('product_variant_one', $newVariants)
+                          ->orWhereIn('product_variant_two', $newVariants)
+                          ->orWhereIn('product_variant_three', $newVariants);
+                        });
+                }])->whereHas('productVariantPrice', function ($query) use ($minPrice, $maxPrice, $newVariants) {
+                    $query->whereBetween('price',[$minPrice, $maxPrice])
+                    ->where(function($query) use ($newVariants) {
+                        $query->whereIn('product_variant_one', $newVariants)
+                          ->orWhereIn('product_variant_two', $newVariants)
+                          ->orWhereIn('product_variant_three', $newVariants);
+                        });
+                })->where("title", $title)->paginate(3);
+
+                $productVariants = ProductVariant::whereIn("variant", $variants)->get();
+            }
+
+            elseif($title)
+                $products = Product::with('productVariantPrice')->where("title", $title)->paginate(3);
+
+            elseif((is_array($variants) && count($variants)>0))
+            {
+                $products = Product::with(['productVariantPrice' => function ($query) use ($minPrice, $maxPrice, $newVariants) {
+                    $query->whereBetween('price',[$minPrice, $maxPrice])
+                    ->where(function($query) use ($newVariants) {
+                        $query->whereIn('product_variant_one', $newVariants)
+                          ->orWhereIn('product_variant_two', $newVariants)
+                          ->orWhereIn('product_variant_three', $newVariants);
+                        });
+                }])->whereHas('productVariantPrice', function ($query) use ($minPrice, $maxPrice, $newVariants) {
+                    $query->whereBetween('price',[$minPrice, $maxPrice]);
+                })->paginate(3);
+
+                $productVariants = ProductVariant::whereIn("variant", $variants)->get();
+            }
+            else
+                $products = Product::with(['productVariantPrice' => function ($query) use ($minPrice, $maxPrice) {
+                    $query->whereBetween('price',[$minPrice, $maxPrice]);
+                }])->whereHas('productVariantPrice', function ($query) use ($minPrice, $maxPrice) {
+                    $query->whereBetween('price',[$minPrice, $maxPrice]);
+                })->paginate(3);
+        }
+        //return $newVariants;
+        return view('products.index')->with("products", $products)->with("productVariants", $productVariants);
+
+
+        // if($title)
+        //     $products = $products->where("title", $title);
+        // if($minPrice)
+        //     $products = $products->with(['productVariantPrice' => function ($query) use ($minPrice) {
+        //         $query->where('price', '>=',$minPrice);
+        //     }])->whereHas('productVariantPrice', function ($query) use ($minPrice) {
+        //         $query->where('price', '>=',$minPrice);
+        //     });
+        
+        // if($maxPrice)
+        //     $products = $products->with(['productVariantPrice' => function ($query) use ($maxPrice) {
+        //         $query->where('price', '>=',$maxPrice);
+        //     }])->whereHas('productVariantPrice', function ($query) use ($maxPrice) {
+        //         $query->where('price', '<=',$maxPrice);
+        //     })->paginate(3);
+
+        // $products = $products->with(['productVariantPrice' => function ($query) use ($minPrice, $maxPrice) {
+        //     $query->whereBetween('price', [$minPrice, $maxPrice]);
+        // }])->whereHas('productVariantPrice', function ($query) use ($minPrice, $maxPrice) {
+        //     $query->whereBetween('price', [$minPrice, $maxPrice]);
+        // })->paginate(3);
 
         // if($variants)
         // {
@@ -133,8 +216,6 @@ class ProductController extends Controller
         //             })
         //             ->paginate(3);
         // }
-
-        return view('products.index')->with("products", $products)->with("productVariants", $productVariants);
     }
 
     public function saveProduct(Request $request)
